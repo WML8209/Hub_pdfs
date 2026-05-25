@@ -10,17 +10,18 @@ import zipfile
 # --- PDF Splitter Functions ---
 
 def juntar_e_particionar_bytes(pdf_files, tamanho_max_mb: float) -> bytes:
+    """Junta pdf_files em memória e divide em lotes de tamanho máximo, retornando um ZIP."""
     tamanho_max_bytes = tamanho_max_mb * 1024 * 1024
 
     writer_atual = PyPDF2.PdfWriter()
     paginas_da_parte: list = []
     lotes: list[bytes] = []
 
-    def _fechar_lote():
-        if not paginas_da_parte:
+    def _fechar_lote(paginas: list):
+        if not paginas:
             return
         writer_final = PyPDF2.PdfWriter()
-        for p in paginas_da_parte:
+        for p in paginas:
             writer_final.add_page(p)
         buf = BytesIO()
         writer_final.write(buf)
@@ -45,16 +46,23 @@ def juntar_e_particionar_bytes(pdf_files, tamanho_max_mb: float) -> bytes:
 
             if tamanho_teste > tamanho_max_bytes:
                 ultimo = paginas_da_parte.pop()
-                writer_atual = PyPDF2.PdfWriter()
-                for p in paginas_da_parte:
-                    writer_atual.add_page(p)
-                _fechar_lote()
-
+                _fechar_lote(paginas_da_parte)
                 paginas_da_parte = [ultimo]
                 writer_atual = PyPDF2.PdfWriter()
                 writer_atual.add_page(ultimo)
 
-    _fechar_lote()
+                # Se a página sozinha já excede o limite, descarrega imediatamente
+                buf_single = BytesIO()
+                writer_atual.write(buf_single)
+                if buf_single.tell() > tamanho_max_bytes:
+                    _fechar_lote(paginas_da_parte)
+                    paginas_da_parte = []
+                    writer_atual = PyPDF2.PdfWriter()
+
+    _fechar_lote(paginas_da_parte)
+
+    if not lotes:
+        raise ValueError("Nenhuma página válida encontrada nos PDFs fornecidos.")
 
     zip_buf = BytesIO()
     with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
