@@ -5,6 +5,63 @@ import os
 import pymupdf  # Para o Redutor
 from pdf2docx import Converter  # Para o Conversor PDF->Word
 import tempfile  # Para o Conversor PDF->Word
+import zipfile
+
+# --- PDF Splitter Functions ---
+
+def juntar_e_particionar_bytes(pdf_files, tamanho_max_mb: float) -> bytes:
+    tamanho_max_bytes = tamanho_max_mb * 1024 * 1024
+
+    writer_atual = PyPDF2.PdfWriter()
+    paginas_da_parte: list = []
+    lotes: list[bytes] = []
+
+    def _fechar_lote():
+        if not paginas_da_parte:
+            return
+        writer_final = PyPDF2.PdfWriter()
+        for p in paginas_da_parte:
+            writer_final.add_page(p)
+        buf = BytesIO()
+        writer_final.write(buf)
+        lotes.append(buf.getvalue())
+
+    for pdf_file in pdf_files:
+        pdf_file.seek(0)
+        try:
+            reader = PyPDF2.PdfReader(pdf_file)
+            if reader.is_encrypted:
+                continue
+        except Exception:
+            continue
+
+        for pagina in reader.pages:
+            writer_atual.add_page(pagina)
+            paginas_da_parte.append(pagina)
+
+            buf_teste = BytesIO()
+            writer_atual.write(buf_teste)
+            tamanho_teste = buf_teste.tell()
+
+            if tamanho_teste > tamanho_max_bytes:
+                ultimo = paginas_da_parte.pop()
+                writer_atual = PyPDF2.PdfWriter()
+                for p in paginas_da_parte:
+                    writer_atual.add_page(p)
+                _fechar_lote()
+
+                paginas_da_parte = [ultimo]
+                writer_atual = PyPDF2.PdfWriter()
+                writer_atual.add_page(ultimo)
+
+    _fechar_lote()
+
+    zip_buf = BytesIO()
+    with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for i, lote_bytes in enumerate(lotes, start=1):
+            zf.writestr(f"lote_{i:02d}.pdf", lote_bytes)
+
+    return zip_buf.getvalue()
 
 # --- Funções do Combinador de PDF (de teste.py) ---
 
