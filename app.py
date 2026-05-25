@@ -277,9 +277,9 @@ def pagina_conversor_word():
     """Função que renderiza a página do Conversor PDF -> Word (de app.py)"""
     st.title("🔃 Conversor de PDF para Word (.docx)")
     st.markdown("---")
-    
+
     uploaded_file = st.file_uploader(
-        "Escolha um arquivo PDF", 
+        "Escolha um arquivo PDF",
         type="pdf",
         key="uploader_pdf_to_word" # Chave única para o uploader
     )
@@ -311,10 +311,10 @@ def pagina_conversor_word():
                             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                             use_container_width=True
                         )
-                
+
                 except Exception as e:
                     st.error(f"❌ Ocorreu um erro durante a conversão: {e}")
-                
+
                 finally:
                     # Limpa os arquivos temporários do disco
                     if os.path.exists(temp_pdf_path):
@@ -324,6 +324,57 @@ def pagina_conversor_word():
     else:
         st.info("👆 Faça upload de um arquivo PDF para começar a conversão")
 
+def pagina_particionador():
+    """Renderiza a página do Particionador de PDFs em Lotes"""
+    st.title("✂️ Particionar PDFs em Lotes")
+    st.markdown("---")
+
+    tamanho_mb = st.slider(
+        "Tamanho máximo por lote (MB)",
+        min_value=5,
+        max_value=50,
+        value=6,
+        help="Cada arquivo de saída terá no máximo este tamanho."
+    )
+
+    uploaded_files = st.file_uploader(
+        "Selecione os arquivos PDF:",
+        type=["pdf"],
+        accept_multiple_files=True,
+        key="uploader_particionador"
+    )
+
+    if uploaded_files:
+        st.markdown(f"**{len(uploaded_files)} arquivo(s) selecionado(s)**")
+        st.markdown("---")
+
+        if st.button("✂️ Particionar em Lotes", type="primary",
+                     use_container_width=True):
+            with st.spinner("Processando PDFs..."):
+                try:
+                    zip_bytes = juntar_e_particionar_bytes(
+                        uploaded_files, tamanho_mb
+                    )
+
+                    with zipfile.ZipFile(BytesIO(zip_bytes)) as zf:
+                        n_lotes = len(zf.namelist())
+
+                    st.success(
+                        f"✅ Processamento concluído! {n_lotes} lote(s) gerado(s)."
+                    )
+                    st.download_button(
+                        label="📥 Download ZIP com todos os lotes",
+                        data=zip_bytes,
+                        file_name="lotes.zip",
+                        mime="application/zip",
+                        use_container_width=True
+                    )
+                except ValueError as e:
+                    st.error(f"❌ {e}")
+                except Exception as e:
+                    st.error(f"❌ Erro ao particionar PDFs: {str(e)}")
+    else:
+        st.info("👆 Faça upload dos arquivos PDF para começar")
 
 # --- Aplicação Principal (Hub) ---
 
