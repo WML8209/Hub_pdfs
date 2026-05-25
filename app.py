@@ -393,7 +393,8 @@ def main():
     
     app_selecionada = st.sidebar.radio(
         "Escolha a ferramenta:",
-        ("📄 Combinador de PDFs", "🗜️ Redutor de PDFs", "🔃 PDF para Word")
+        ("📄 Combinador de PDFs", "🗜️ Redutor de PDFs",
+         "🔃 PDF para Word", "✂️ Particionar em Lotes")
     )
     st.sidebar.markdown("---")
 
@@ -404,6 +405,8 @@ def main():
         pagina_redutor()
     elif app_selecionada == "🔃 PDF para Word":
         pagina_conversor_word()
+    elif app_selecionada == "✂️ Particionar em Lotes":
+        pagina_particionador()
 
 if __name__ == "__main__":
     main()
