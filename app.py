@@ -331,9 +331,9 @@ def pagina_particionador():
 
     tamanho_mb = st.slider(
         "Tamanho máximo por lote (MB)",
-        min_value=5,
-        max_value=50,
-        value=6,
+        min_value=4,
+        max_value=10,
+        value=7,
         help="Cada arquivo de saída terá no máximo este tamanho."
     )
 
